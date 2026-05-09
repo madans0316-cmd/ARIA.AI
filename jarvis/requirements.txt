@@ -1,0 +1,29 @@
+# ══════════════════════════════════════════════════════
+#  JARVIS AI ASSISTANT — Python Dependencies
+#  Install with:  pip install -r requirements.txt
+# ══════════════════════════════════════════════════════
+
+# ── Core UI ──────────────────────────────────────────
+streamlit>=1.35.0
+
+# ── HTTP (Ollama API calls) ───────────────────────────
+requests>=2.31.0
+
+# ── PDF parsing ───────────────────────────────────────
+PyMuPDF>=1.24.0          # fitz — fast PDF text extraction
+
+# ── Voice input (Speech-to-Text) ─────────────────────
+SpeechRecognition>=3.10.0
+# pyaudio>=0.2.13        # uncomment on Linux/Mac
+#                        # on Windows: pip install pipwin && pipwin install pyaudio
+
+# ── Voice output (Text-to-Speech) ────────────────────
+pyttsx3>=2.90            # offline TTS (no internet needed)
+# gtts>=2.5.1            # optional: higher quality but needs internet
+# pygame>=2.5.2          # required for gTTS playback
+
+# ── Database ─────────────────────────────────────────
+# sqlite3 is part of Python stdlib — no install needed
+
+# ── Utilities ────────────────────────────────────────
+python-dotenv>=1.0.0     # for future .env config support

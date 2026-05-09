@@ -145,14 +145,22 @@ def render_chat():
 
     # ── Process user message ──────────────────────────────────────────────────
     if user_input:
-        if not is_ollama_running():
-            st.error("⚠️ Ollama is not running. Start it with: `ollama serve`")
-            return
+        ollama_ok = is_ollama_running()
+        
+        # Demo mode if Ollama not running (for testing voice features)
+        if not ollama_ok:
+            st.warning("⚠️ **Ollama is not running.** Using demo mode to test voice features.")
+            st.info("To enable full chat: `ollama serve` in a terminal. See [VOICE_SETUP_GUIDE.md](VOICE_SETUP_GUIDE.md)")
+            demo_reply = _get_demo_reply(user_input)
+        else:
+            demo_reply = None
 
         # Append user message
         user_msg = {"role": "user", "content": user_input, "timestamp": _ts()}
         st.session_state["messages"].append(user_msg)
-        save_message(conv_id, "user", user_input, st.session_state["model"])
+        
+        if ollama_ok:
+            save_message(conv_id, "user", user_input, st.session_state["model"])
 
         with st.chat_message("user", avatar="👤"):
             st.markdown(user_input)
@@ -160,24 +168,66 @@ def render_chat():
         # Stream assistant reply
         with st.chat_message("assistant", avatar="⚡"):
             with st.spinner("Thinking…"):
-                # Build message list without timestamp keys for LLM
-                llm_msgs = [
-                    {"role": m["role"], "content": m["content"]}
-                    for m in st.session_state["messages"]
-                ]
-                reply = _stream_response(llm_msgs)
-                st.markdown(reply)
+                if demo_reply:
+                    # Demo mode response (no Ollama)
+                    reply = demo_reply
+                    st.markdown(reply)
+                else:
+                    # Normal LLM response (Ollama running)
+                    # Build message list without timestamp keys for LLM
+                    llm_msgs = [
+                        {"role": m["role"], "content": m["content"]}
+                        for m in st.session_state["messages"]
+                    ]
+                    reply = _stream_response(llm_msgs)
+                    st.markdown(reply)
 
         # Save assistant message
         asst_msg = {"role": "assistant", "content": reply, "timestamp": _ts()}
         st.session_state["messages"].append(asst_msg)
-        save_message(conv_id, "assistant", reply, st.session_state["model"])
+        
+        if ollama_ok:
+            save_message(conv_id, "assistant", reply, st.session_state["model"])
 
         # Voice output
         if st.session_state.get("voice_output_enabled") and voice.is_tts_available():
             voice.speak(reply[:500], engine=st.session_state.get("tts_engine", "pyttsx3"))
 
         st.rerun()
+
+
+def _get_demo_reply(user_input: str) -> str:
+    """
+    Generate a demo reply when Ollama is not available.
+    Useful for testing UI and voice features.
+    """
+    user_lower = user_input.lower()
+    
+    # Simple keyword matching for demo responses
+    demo_responses = {
+        "hello": "Hello! I'm Jarvis, your personal AI assistant. I'm currently in demo mode since Ollama isn't running. To enable full AI capabilities, start Ollama by running `ollama serve` in a terminal.",
+        "how are you": "I'm doing great! Thanks for asking. I'm running in demo mode right now. To unlock my full capabilities, please start Ollama with `ollama serve`.",
+        "test": "This is a test response! I'm running in demo mode. Voice features should work fine for testing. Start `ollama serve` to enable real AI conversations.",
+        "voice": "Voice features are fully functional! You can use voice input with the 🎙️ button and enable voice output in Settings. Try clicking the microphone button in the chat to test voice input.",
+        "help": "I can help! In demo mode, I provide basic responses to test the UI and voice features. For full functionality, please start Ollama. Visit VOICE_SETUP_GUIDE.md for setup instructions.",
+    }
+    
+    # Check for keyword matches
+    for keyword, response in demo_responses.items():
+        if keyword in user_lower:
+            return response
+    
+    # Default demo response
+    return (
+        f"Thanks for asking: *{user_input}*\n\n"
+        "I'm currently in **demo mode** (Ollama isn't running). I can still help you test voice features! "
+        "To enable full AI conversations:\n\n"
+        "1. Open a terminal and run: `ollama serve`\n"
+        "2. Reload this page\n"
+        "3. Start chatting with me using text or voice\n\n"
+        "See [VOICE_SETUP_GUIDE.md](VOICE_SETUP_GUIDE.md) for detailed setup instructions."
+    )
+
 
 
 def _render_welcome():
